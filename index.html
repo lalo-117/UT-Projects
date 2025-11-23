@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCAIDE - Sistema Integral</title>
+    
+    <!-- Tailwind CSS (Estilos) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Tipografía) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 (Alertas bonitas) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800">
+
+    <!-- ======================= 
+         VISTA 1: INICIO DE SESIÓN 
+    ======================== -->
+    <div id="login-view" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-4 border-blue-600">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-blue-700 mb-2">SCAIDE</h1>
+                <p class="text-gray-500">Sistema de Mantenimiento Universitario</p>
+            </div>
+
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Usuario</label>
+                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: alumno o admin">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="••••••">
+                </div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
+                    Iniciar Sesión
+                </button>
+            </form>
+
+            <div class="mt-6 bg-blue-50 p-4 rounded text-xs text-blue-800">
+                <p class="font-bold mb-1">Cuentas de prueba:</p>
+                <p>🎓 Alumno: <b>alumno</b> / <b>123</b></p>
+                <p>🛠️ Mantenimiento: <b>admin</b> / <b>123</b></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================= 
+         VISTA 2: PANEL PRINCIPAL (APP) 
+    ======================== -->
+    <div id="app-view" class="hidden container mx-auto p-4 sm:p-8 max-w-6xl fade-in">
+        
+        <!-- Encabezado -->
+        <header class="bg-white p-6 rounded-lg shadow-lg mb-6 border-l-4 border-blue-600 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-700">SCAIDE</h1>
+                <p class="text-lg text-gray-600">Bienvenido, <span id="user-display-name" class="font-bold text-gray-800">Usuario</span></p>
+                <span id="role-badge" class="inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1">Rol</span>
+            </div>
+            <button onclick="logout()" class="text-sm text-red-600 hover:text-red-800 font-medium underline">
+                Cerrar Sesión
+            </button>
+        </header>
+
+        <!-- Barra de Navegación -->
+        <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            
+            <!-- Menú Desplegable -->
+            <div id="dropdown-container" class="relative inline-block text-left w-full sm:w-auto z-10">
+                <button id="dropdown-button" type="button" class="inline-flex w-full sm:w-64 justify-between items-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                    <span id="dropdown-label">Buzón</span>
+                    <svg class="ml-2 -mr-1 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.23 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
+                </button>
+                <div id="dropdown-menu" class="hidden absolute left-0 z-20 mt-2 w-full sm:w-64 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+                    <div class="py-1">
+                        <button onclick="switchTab('buzon')" class="dropdown-item w-full text-left px-4 py-3 text-sm hover:bg-gray-100">Buzón (Pendientes)</button>
+                        <button onclick="switchTab('seguimiento')" class="dropdown-item w-full text-left px-4 py-3 text-sm hover:bg-gray-100">Seguimiento de Quejas</button>
+                        <button onclick="switchTab('estado')" class="dropdown-item w-full text-left px-4 py-3 text-sm hover:bg-gray-100">Estado de Edificios</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón Nuevo Reporte (Solo Alumnos) -->
+            <button id="btn-new-report" onclick="openModal()" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow items-center transition">
+                <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                Nuevo Reporte
+            </button>
+        </div>
+
+        <!-- Área de Contenido -->
+        <main class="bg-white p-6 rounded-lg shadow-md min-h-[500px]">
+            
+            <!-- PESTAÑA 1: BUZÓN (SOLO PENDIENTES) -->
+            <div id="tab-buzon" class="tab-content active">
+                <div class="flex justify-between items-end mb-6 border-b pb-2">
+                    <h2 class="text-2xl font-semibold text-gray-800">Buzón de Pendientes</h2>
+                    <p class="text-sm text-gray-500" id="report-count">Cargando...</p>
+                </div>
+                <div id="reports-container" class="space-y-4"></div>
+            </div>
+
+            <!-- PESTAÑA 2: SEGUIMIENTO -->
+            <div id="tab-seguimiento" class="tab-content">
+                <div class="flex justify-between items-end mb-6 border-b pb-2">
+                    <h2 class="text-2xl font-semibold text-gray-800">Seguimiento de Quejas</h2>
+                    <p class="text-sm text-gray-500" id="tracking-subtitle">Historial</p>
+                </div>
+                <!-- Contenedor de seguimiento -->
+                <div id="tracking-container" class="space-y-4"></div>
+            </div>
+
+            <!-- PESTAÑA 3: ESTADO DE EDIFICIOS -->
+            <div id="tab-estado" class="tab-content">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Estado de Edificios</h2>
+                <p class="text-gray-600 mb-6 text-sm">
+                    <span id="admin-instruction" class="hidden text-blue-600 font-bold bg-blue-50 p-1 rounded">MODO ADMIN: Usa los selectores para cambiar el estado en tiempo real.</span>
+                </p>
+                <div id="buildings-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL (VENTANA EMERGENTE) NUEVO REPORTE -->
+    <div id="modal-reporte" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closeModal()"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Nuevo Reporte</h3>
+                    <form id="form-reporte" class="mt-4 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Edificio</label>
+                            <select id="input-edificio" class="mt-1 block w-full border-gray-300 border rounded-md shadow-sm p-2 bg-white">
+                                <option>Edificio A (Rectoría)</option>
+                                <option>Edificio C</option>
+                                <option>Edificio G</option>
+                                <option>Edificio I</option>
+                                <option>Cafetería</option>
+                                <option>Biblioteca</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Descripción</label>
+                            <textarea id="input-falla" rows="3" class="mt-1 block w-full border-gray-300 border rounded-md shadow-sm p-2" placeholder="Describe la falla..."></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Urgencia</label>
+                            <select id="input-urgencia" class="mt-1 block w-full border-gray-300 border rounded-md shadow-sm p-2 bg-white">
+                                <option value="Baja">Baja</option>
+                                <option value="Media">Media</option>
+                                <option value="Urgente">Urgente</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="submitReport()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 sm:ml-3 sm:w-auto sm:text-sm">Guardar y Notificar</button>
+                    <button type="button" onclick="closeModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LÓGICA JAVASCRIPT -->
+    <script>
+        // --- 1. DATOS INICIALES (Simulando Base de Datos) ---
+        let buildingsData = [
+            { id: 1, name: 'Edificio A (Rectoría)', status: 'Operativo' },
+            { id: 2, name: 'Edificio C', status: 'Operativo' },
+            { id: 3, name: 'Edificio G', status: 'Mantenimiento' },
+            { id: 4, name: 'Edificio I', status: 'Operativo' },
+            { id: 5, name: 'Cafetería', status: 'Operativo' },
+            { id: 6, name: 'Biblioteca', status: 'Cerrado' }
+        ];
+
+        let reportsData = [
+            { id: 101, edificio: 'Edificio A', falla: 'Fuga de agua baño hombres', urgencia: 'Urgente', estado: 'Pendiente', autor: 'Dr. Salas', fecha: '06/11/2025' },
+            { id: 102, edificio: 'Biblioteca', falla: 'Luz parpadeante sala lectura', urgencia: 'Media', estado: 'Asignado', autor: 'Alumno U.', fecha: '05/11/2025' },
+            { id: 103, edificio: 'Cafetería', falla: 'Aire acondicionado gotea', urgencia: 'Baja', estado: 'Completado', autor: 'Alumno U.', fecha: '04/11/2025' },
+             { id: 104, edificio: 'Edificio G', falla: 'Proyector sin señal', urgencia: 'Media', estado: 'Pendiente', autor: 'Prof. Ruiz', fecha: '07/11/2025' }
+        ];
+
+        let currentUser = null; 
+
+        // --- 2. SISTEMA DE LOGIN ---
+        const loginForm = document.getElementById('login-form');
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value.toLowerCase().trim();
+            const p = document.getElementById('password').value;
+
+            if (u === 'alumno' && p === '123') {
+                currentUser = { name: 'Alumno U.', role: 'student' };
+                initApp();
+            } else if (u === 'admin' && p === '123') {
+                currentUser = { name: 'Jefe Mantenimiento', role: 'admin' };
+                initApp();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Credenciales incorrectas' });
+            }
+        });
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('app-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // --- 3. INICIALIZACIÓN DE LA APP ---
+        function initApp() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+            document.getElementById('user-display-name').textContent = currentUser.name;
+            const badge = document.getElementById('role-badge');
+            
+            if (currentUser.role === 'admin') {
+                badge.textContent = "ADMINISTRADOR";
+                badge.className = "inline-block px-2 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700 mt-1";
+                document.getElementById('btn-new-report').classList.add('hidden');
+                document.getElementById('admin-instruction').classList.remove('hidden');
+            } else {
+                badge.textContent = "ALUMNO";
+                badge.className = "inline-block px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-700 mt-1";
+                document.getElementById('btn-new-report').classList.remove('hidden');
+                document.getElementById('admin-instruction').classList.add('hidden');
+            }
+
+            renderAll();
+            switchTab('buzon');
+        }
+
+        function renderAll() {
+            renderBuildings();
+            renderReports(); // Buzón
+            renderTracking(); // Seguimiento
+        }
+
+        // --- 4. RENDERIZADO EDIFICIOS ---
+        function renderBuildings() {
+            const container = document.getElementById('buildings-container');
+            container.innerHTML = '';
+            buildingsData.forEach(b => {
+                let borderColor = b.status === 'Operativo' ? 'border-green-400 bg-green-50 text-green-800' : 
+                                  (b.status === 'Mantenimiento' ? 'border-yellow-400 bg-yellow-50 text-yellow-800' : 'border-red-400 bg-red-50 text-red-800');
+
+                const card = document.createElement('div');
+                card.className = `border ${borderColor} rounded-lg p-4 shadow-sm transition-all`;
+
+                let statusHTML = '';
+                if (currentUser.role === 'admin') {
+                    statusHTML = `
+                        <div class="mt-2">
+                            <label class="text-xs font-bold uppercase opacity-70">Cambiar Estado:</label>
+                            <select onchange="updateBuildingStatus(${b.id}, this.value)" class="block w-full mt-1 text-sm border-gray-300 rounded p-1 bg-white text-black">
+                                <option value="Operativo" ${b.status === 'Operativo' ? 'selected' : ''}>Operativo</option>
+                                <option value="Mantenimiento" ${b.status === 'Mantenimiento' ? 'selected' : ''}>Mantenimiento</option>
+                                <option value="Cerrado" ${b.status === 'Cerrado' ? 'selected' : ''}>Cerrado</option>
+                            </select>
+                        </div>`;
+                } else {
+                    statusHTML = `<p class="text-sm font-bold mt-1">Estado: ${b.status}</p>`;
+                }
+
+                card.innerHTML = `<h3 class="font-bold text-lg">${b.name}</h3>${statusHTML}`;
+                container.appendChild(card);
+            });
+        }
+
+        window.updateBuildingStatus = function(id, newStatus) {
+            const building = buildingsData.find(b => b.id === id);
+            if (building) {
+                building.status = newStatus;
+                renderAll();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Estado actualizado', timer: 1500, showConfirmButton: false });
+            }
+        };
+
+        // --- 5. RENDERIZADO BUZÓN (SOLO PENDIENTES) ---
+        function renderReports() {
+            const container = document.getElementById('reports-container');
+            container.innerHTML = '';
+            
+            // FILTRO: Solo mostrar reportes con estado 'Pendiente' (Sin asignar)
+            const list = reportsData.filter(r => r.estado === 'Pendiente').reverse();
+            
+            document.getElementById('report-count').textContent = `${list.length} reportes sin asignar`;
+
+            if (list.length === 0) {
+                 container.innerHTML = `
+                    <div class="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <p class="text-gray-500 italic">¡Todo limpio! No hay reportes pendientes de asignación.</p>
+                    </div>
+                 `;
+                 return;
+            }
+
+            list.forEach(r => createReportCard(r, container, false));
+        }
+
+        // --- 6. RENDERIZADO SEGUIMIENTO (FILTRADO) ---
+        function renderTracking() {
+            const container = document.getElementById('tracking-container');
+            const subtitle = document.getElementById('tracking-subtitle');
+            container.innerHTML = '';
+
+            let filteredList = [];
+
+            if (currentUser.role === 'student') {
+                // Alumno: Ve SOLO sus reportes (cualquier estado, para ver qué pasó)
+                filteredList = reportsData.filter(r => r.autor === currentUser.name).reverse();
+                subtitle.textContent = "Mis reportes enviados";
+            } else {
+                // Admin: Ve reportes NO pendientes (los que ya está trabajando o terminó)
+                filteredList = reportsData.filter(r => r.estado !== 'Pendiente').reverse();
+                subtitle.textContent = "En Progreso o Completados";
+            }
+
+            if (filteredList.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-gray-400 italic">No hay historial disponible.</div>`;
+                return;
+            }
+
+            filteredList.forEach(r => createReportCard(r, container, true));
+        }
+
+        // --- HELPER: CREAR TARJETA DE REPORTE ---
+        function createReportCard(r, container, isTrackingView) {
+            let statusClass = r.estado === 'Pendiente' ? 'bg-gray-100 text-gray-600' : (r.estado === 'Asignado' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700');
+            let urgencyClass = r.urgencia === 'Urgente' ? 'text-red-600 bg-red-50 border border-red-200' : (r.urgencia === 'Media' ? 'text-yellow-600 bg-yellow-50 border border-yellow-200' : 'text-blue-600 bg-blue-50 border border-blue-200');
+
+            // Controles de Admin 
+            let adminControls = '';
+            
+            if (currentUser.role === 'admin') {
+                // En Buzón (Pendientes): Opción para Asignar
+                if (r.estado === 'Pendiente') {
+                    adminControls = `
+                        <div class="mt-3 pt-3 border-t flex items-center justify-end gap-2 bg-gray-50 -mx-4 -mb-4 px-4 py-2 rounded-b-lg">
+                            <span class="text-xs text-gray-400 mr-auto">Acciones:</span>
+                            <button onclick="changeReportStatus(${r.id}, 'Asignado')" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded shadow-sm font-medium">Asignar / Atender</button>
+                        </div>
+                    `;
+                } 
+                // En Seguimiento (Asignado/Completado): Opciones para terminar o regresar
+                else {
+                    adminControls = `
+                        <div class="mt-3 pt-3 border-t flex items-center justify-end gap-2 bg-gray-50 -mx-4 -mb-4 px-4 py-2 rounded-b-lg">
+                            <span class="text-xs text-gray-400 mr-auto">Gestión:</span>
+                            <button onclick="changeReportStatus(${r.id}, 'Pendiente')" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded">Devolver a Buzón</button>
+                            ${r.estado !== 'Completado' ? `<button onclick="changeReportStatus(${r.id}, 'Completado')" class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded shadow-sm font-medium">Marcar Terminado</button>` : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            const item = document.createElement('div');
+            item.className = `bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition mb-4 animate-fade-in`;
+            item.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h3 class="font-bold text-gray-800">${r.falla}</h3>
+                        <p class="text-xs text-gray-500">${r.edificio} • ${r.fecha}</p>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="text-xs font-bold px-2 py-1 rounded ${urgencyClass}">${r.urgencia}</span>
+                        <span class="text-xs px-2 py-0.5 rounded ${statusClass} border border-transparent">${r.estado}</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mb-1">Reportado por: <b>${r.autor}</b></p>
+                ${adminControls}
+            `;
+            container.appendChild(item);
+        }
+
+        window.changeReportStatus = function(id, status) {
+            const report = reportsData.find(r => r.id === id);
+            if(report) {
+                report.estado = status;
+                
+                // Feedback visual antes de re-renderizar
+                let msg = status === 'Asignado' ? 'Reporte movido a Seguimiento' : 
+                          (status === 'Completado' ? 'Reporte finalizado' : 'Devuelto al Buzón');
+
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: msg, timer: 1500, showConfirmButton: false });
+                renderAll();
+            }
+        }
+
+        // --- 7. NUEVO REPORTE (CON SIMULACIÓN DE CORREO) ---
+        function submitReport() {
+            const edificio = document.getElementById('input-edificio').value;
+            const falla = document.getElementById('input-falla').value;
+            const urgencia = document.getElementById('input-urgencia').value;
+
+            if(!falla) { alert('Por favor describe la falla'); return; }
+
+            // 1. Mostrar estado de "Enviando correo..."
+            // Esto bloquea la interfaz y muestra que el sistema está trabajando
+            Swal.fire({
+                title: 'Procesando Reporte',
+                html: 'Guardando datos y enviando notificación a <br><b>mantenimiento@universidad.edu</b>...',
+                timer: 1500, // Simulamos que tarda 1.5 segundos en enviar el email
+                timerProgressBar: true,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            }).then(() => {
+                // 2. Aquí iría el código real de envío (ej: EmailJS)
+                // emailjs.send(...)
+
+                // 3. Crear el reporte después de la "simulación"
+                const newReport = {
+                    id: Date.now(),
+                    edificio: edificio,
+                    falla: falla,
+                    urgencia: urgencia,
+                    estado: 'Pendiente',
+                    autor: currentUser.name,
+                    fecha: new Date().toLocaleDateString()
+                };
+
+                reportsData.push(newReport);
+                renderAll();
+                closeModal();
+                
+                // 4. Mensaje de Éxito Final
+                if (currentUser.role === 'student') {
+                    switchTab('seguimiento');
+                    Swal.fire({ 
+                        icon: 'success', 
+                        title: '¡Reporte y Correo Enviados!', 
+                        text: 'Se ha notificado al equipo técnico por correo electrónico. Puedes ver el estado en "Mis reportes".', 
+                        timer: 3000, 
+                        showConfirmButton: false 
+                    });
+                } else {
+                    switchTab('buzon');
+                    Swal.fire({ icon: 'success', title: 'Registrado', text: 'Notificación enviada.', timer: 1500 });
+                }
+            });
+        }
+
+        // --- UTILIDADES ---
+        const dropdownBtn = document.getElementById('dropdown-button');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const dropdownLabel = document.getElementById('dropdown-label');
+
+        dropdownBtn.addEventListener('click', () => { dropdownMenu.classList.toggle('hidden'); });
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            const labels = { 'buzon': 'Buzón', 'seguimiento': 'Seguimiento', 'estado': 'Estado de Edificios' };
+            dropdownLabel.innerText = labels[tabId];
+            dropdownMenu.classList.add('hidden');
+        };
+
+        window.openModal = function() { document.getElementById('modal-reporte').classList.remove('hidden'); };
+        window.closeModal = function() { 
+            document.getElementById('modal-reporte').classList.add('hidden'); 
+            document.getElementById('form-reporte').reset();
+        };
+
+        window.addEventListener('click', (e) => {
+            if (!document.getElementById('dropdown-container').contains(e.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
